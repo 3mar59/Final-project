@@ -8,7 +8,6 @@ import io
 app = Flask(__name__)
 CORS(app)
 
-# Week 2: lightweight pretrained YOLOv8 Nano model
 model = YOLO("yolov8n.pt")
 
 CATEGORY_MAP = {
@@ -30,7 +29,6 @@ def home():
     return jsonify({
         "message": "Assistive Visual Recognition backend is running",
         "model": "YOLOv8n",
-        "week": 2,
     })
 
 
@@ -44,7 +42,6 @@ def detect_object():
 
         image_base64 = data["image"]
 
-        # Remove data URL prefix if it exists.
         if "," in image_base64:
             image_base64 = image_base64.split(",", 1)[1]
 
