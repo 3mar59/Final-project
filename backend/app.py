@@ -5,23 +5,12 @@ from PIL import Image
 import base64
 import io
 
+from config import CATEGORY_MAP, CONFIDENCE_THRESHOLD
+
 app = Flask(__name__)
 CORS(app)
 
 model = YOLO("yolov8n.pt")
-
-CATEGORY_MAP = {
-    "bottle": "beverages",
-    "cup": "beverages",
-    "banana": "food",
-    "apple": "food",
-    "orange": "food",
-    "sandwich": "food",
-    "cake": "food",
-    "toothbrush": "personal care",
-    "cell phone": "electronics",
-    "book": "general item",
-}
 
 
 @app.route("/", methods=["GET"])
@@ -48,7 +37,12 @@ def detect_object():
         image_bytes = base64.b64decode(image_base64)
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
-        results = model(image, verbose=False)
+        results = model.predict(
+            source=image,
+            conf=CONFIDENCE_THRESHOLD,
+            verbose=False,
+        )
+
         detections = []
 
         for result in results:
@@ -56,33 +50,34 @@ def detect_object():
                 class_id = int(box.cls[0])
                 confidence = float(box.conf[0])
                 label = model.names[class_id]
+                category = CATEGORY_MAP.get(label, "general object")
 
                 detections.append({
                     "label": label,
-                    "confidence": confidence,
+                    "category": category,
+                    "confidence": round(confidence, 3),
                 })
+
+        detections.sort(key=lambda item: item["confidence"], reverse=True)
 
         if not detections:
             return jsonify({
                 "detected": False,
-                "label": "No object detected",
-                "category": "Unknown",
-                "confidence": 0,
+                "detections": [],
                 "speech": "No object detected. Please try again.",
             })
 
-        best_detection = max(detections, key=lambda item: item["confidence"])
-        label = best_detection["label"]
-        confidence = best_detection["confidence"]
-        category = CATEGORY_MAP.get(label, "general object")
-
-        speech_text = f"Detected item: {label}. Category: {category}."
+        best_detection = detections[0]
+        speech_text = (
+            f"Detected item: {best_detection['label']}. "
+            f"Category: {best_detection['category']}."
+        )
 
         return jsonify({
             "detected": True,
-            "label": label,
-            "category": category,
-            "confidence": round(confidence, 2),
+            "best_detection": best_detection,
+            "detections": detections,
+            "number_of_objects": len(detections),
             "speech": speech_text,
         })
 
