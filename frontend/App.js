@@ -15,6 +15,7 @@ export default function App() {
   const [permission, requestPermission] = useCameraPermissions();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState("No object scanned yet");
+  const [confidence, setConfidence] = useState(null);
 
   const BACKEND_URL = "http://YOUR_LAPTOP_IP:5000/detect";
 
@@ -49,6 +50,7 @@ export default function App() {
 
       setLoading(true);
       setResult("Scanning...");
+      setConfidence(null);
 
       const photo = await cameraRef.current.takePictureAsync({
         base64: true,
@@ -73,10 +75,20 @@ export default function App() {
         return;
       }
 
-      const outputText = data.speech || "No object detected.";
-      setResult(outputText);
+      if (!data.detected) {
+        setResult("No object detected");
+        Speech.speak(data.speech || "No object detected. Please try again.");
+        return;
+      }
 
-      Speech.speak(outputText, {
+      const best = data.best_detection;
+      const confidencePercent = Math.round(best.confidence * 100);
+      const outputText = `${best.label}\nCategory: ${best.category}`;
+
+      setResult(outputText);
+      setConfidence(confidencePercent);
+
+      Speech.speak(data.speech, {
         language: "en",
         pitch: 1.0,
         rate: 0.9,
@@ -84,6 +96,7 @@ export default function App() {
     } catch (error) {
       console.log(error);
       setResult("Could not connect to backend.");
+      setConfidence(null);
       Speech.speak("Could not connect to the detection system.");
     } finally {
       setLoading(false);
@@ -91,7 +104,8 @@ export default function App() {
   };
 
   const repeatSpeech = () => {
-    Speech.speak(result, {
+    const text = result.replace("\n", ". ");
+    Speech.speak(text, {
       language: "en",
       pitch: 1.0,
       rate: 0.9,
@@ -105,6 +119,10 @@ export default function App() {
       <View style={styles.bottomPanel}>
         <Text style={styles.title}>Assistive Visual Recognition</Text>
         <Text style={styles.resultText}>{result}</Text>
+
+        {confidence !== null && (
+          <Text style={styles.confidenceText}>Confidence: {confidence}%</Text>
+        )}
 
         {loading ? (
           <ActivityIndicator size="large" />
@@ -139,7 +157,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   resultText: {
-    fontSize: 16,
+    fontSize: 18,
+    marginBottom: 6,
+  },
+  confidenceText: {
+    fontSize: 15,
     marginBottom: 15,
   },
   button: {
