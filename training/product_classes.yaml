@@ -1,0 +1,13 @@
+path: dataset
+train: images/train
+val: images/val
+
+names:
+  0: beverage
+  1: snack
+  2: dairy
+  3: cereal
+  4: canned_food
+  5: cleaning_product
+  6: personal_care
+  7: packaged_food
