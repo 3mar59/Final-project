@@ -16,8 +16,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState("No object scanned yet");
 
-  // Replace YOUR_LAPTOP_IP with your Windows IPv4 address.
-  // Example: http://192.168.1.25:5000/detect
   const BACKEND_URL = "http://YOUR_LAPTOP_IP:5000/detect";
 
   if (!permission) {
